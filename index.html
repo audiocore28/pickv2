@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Game Picker</title>
+    <style>
+      body { background: #0a0a0a; color: white; font-family: sans-serif; padding: 10px; }
+      header { text-align: center; color: lime; font-size: 24px; margin-bottom: 10px; }
+      select, input, button { padding: 8px; margin: 5px; border-radius: 5px; }
+      .game-card {
+        background: linear-gradient(180deg, #141414, #0b0b0b);
+        border: 1px solid rgba(124,255,0,0.25);
+        padding: 10px;
+        border-radius: 14px;
+        position: relative;
+        cursor: pointer;
+        
+        /* 🔴 CRITICAL */
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .game-card:hover {
+        transform: translateY(-6px) scale(1.03);
+        box-shadow:
+        0 0 18px rgba(124,255,0,0.35),
+        0 0 35px rgba(124,255,0,0.15);
+        border: 1px solid rgba(124,255,0,0.7);
+      }
+      .platform-icon { font-size: 12px; color: lime; margin-bottom: 5px; display: block; }
+      .admin-panel { display: none; margin-top: 20px; }
+      .remove-btn, .edit-btn { position: absolute; top: 5px; background: red; color: white; border: none; border-radius: 3px; font-size:12px; cursor: pointer; padding:2px 5px; display:none; }
+      .remove-btn { right: 5px; }
+      .edit-btn { left:5px; background:orange; }
+      .selected {
+        border: 2px solid #7CFF00;
+        box-shadow:
+        0 0 14px rgba(124,255,0,0.9),
+        inset 0 0 12px rgba(124,255,0,0.25);
+      }
+      #capacityDisplay { font-weight: bold; margin-top: 10px; text-align: center; }
+      .warning { text-align: center; color: red; font-weight: bold; }
+      #viewListModal { background: #222; padding: 15px; border-radius: 10px; margin: 10px auto; max-width: 500px; display: none; }
+      /* Floating Panel Styles */
+      #floatingPanel {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        
+        background: rgba(20, 20, 20, 0.55);   /* glass */
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        
+        border: 1px solid rgba(124,255,0,0.35);
+        padding: 12px 14px;
+        border-radius: 14px;
+        
+        box-shadow:
+        0 8px 25px rgba(0,0,0,0.6),
+        0 0 18px rgba(124,255,0,0.25);
+        
+        z-index: 1000;
+        font-size: 14px;
+      }
+      #floatingPanel button {
+        display: block;
+        margin-top: 8px;
+        width: 100%;
+        
+        background: linear-gradient(135deg, #7CFF00, #3aff00);
+        color: #000;
+        font-size: 14px;
+        font-weight: bold;
+        
+        border: none;
+        border-radius: 8px;
+        padding: 8px;
+        
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      
+      #floatingPanel button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 12px rgba(124,255,0,0.7);
+      }
+      #platformFilters button {
+        background: #222;
+        color: white;
+        border: 1px solid #555;
+        padding: 6px 10px;
+        margin: 3px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      #platformFilters button.active {
+        background: limegreen;
+        color: black;
+        font-weight: bold;
+      }
+      #floatingPanel strong {
+        color: #7CFF00;
+      }
+      
+      #floatingPanel span {
+        color: #fff;
+      }
+      .game-card img {
+        width: 100%;
+        aspect-ratio: 2 / 3;     /* 🎮 PORTRAIT */
+        object-fit: cover;       /* kita buong frame, walang stretch */
+        border-radius: 12px;
+        margin-bottom: 8px;
+        background: #111;
+        transition: transform 0.25s ease;
+      }
+      /* NOTE PILLS (BADGES) */
+      .note-pill {
+        display: inline-block;
+        padding: 4px 8px;
+        margin-top: 4px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: .3px;
+        box-shadow: 0 0 8px rgba(0,0,0,.4);
+      }
+      
+      /* RED / WARNING */
+      .note-danger {
+        background: linear-gradient(135deg, #ff3d3d, #b71c1c);
+        color: #fff;
+      }
+      
+      /* GREEN / RECOMMENDED */
+      .note-success {
+        background: linear-gradient(135deg, #7CFF00, #2e7d32);
+        color: #000;
+      }
+      
+      /* OPTIONAL: yellow / info */
+      .note-info {
+        background: linear-gradient(135deg, #ffeb3b, #f9a825);
+        color: #000;
+      }
+      
+      .game-card:hover img {
+        transform: scale(1.04);
+      }
+      /* HEADER POLISH */
+      header {
+        text-align: center;
+        color: #7CFF00;
+        font-size: 26px;
+        margin-bottom: 4px;
+        letter-spacing: 1px;
+        text-shadow:
+        0 0 8px rgba(124,255,0,.9),
+        0 0 18px rgba(124,255,0,.5);
+      }
+      
+      .header-sub {
+        font-size: 13px;
+        color: #aaa;
+        margin-top: 4px;
+        letter-spacing: 0.5px;
+      }
+      /* GLOBAL BUTTON UPGRADE */
+      button {
+        border-radius: 10px;
+        background: linear-gradient(135deg, #1e1e1e, #0d0d0d);
+        color: #fff;
+        border: 1px solid rgba(124,255,0,.35);
+        cursor: pointer;
+        transition: 
+        transform .2s ease,
+        box-shadow .2s ease,
+        border .2s ease;
+      }
+      
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow:
+        0 0 12px rgba(124,255,0,.45),
+        0 0 25px rgba(124,255,0,.15);
+        border: 1px solid rgba(124,255,0,.8);
+      }
+      
+      button:active {
+        transform: scale(.96);
+      }
+      /* SHAKE ANIMATION */
+      @keyframes shake {
+        0% { transform: translateX(0); }
+        20% { transform: translateX(-6px); }
+        40% { transform: translateX(6px); }
+        60% { transform: translateX(-4px); }
+        80% { transform: translateX(4px); }
+        100% { transform: translateX(0); }
+      }
+      
+      .shake {
+        animation: shake 0.45s;
+      }
+      /* NEON LOADING SPINNER */
+      .neon-spinner {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        border: 4px solid rgba(124,255,0,.2);
+        border-top: 4px solid #7CFF00;
+        animation: spin 0.8s linear infinite;
+        box-shadow: 0 0 18px rgba(124,255,0,.7);
+        margin: auto;
+      }
+      
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      /* ===============================
+      MOBILE GRID – HARD FORCE
+      ================================ */
+      
+      #games-container {
+        display: grid;
+        gap: 12px;
+        padding: 6px;
+      }
+      
+      /* PHONE */
+      @media (max-width: 640px) {
+        #games-container {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        
+        .game-card img {
+          height: 180px;
+        }
+      }
+      
+      /* TABLET */
+      @media (min-width: 641px) and (max-width: 900px) {
+        #games-container {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      
+      /* DESKTOP */
+      @media (min-width: 901px) {
+        #games-container {
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        .game-card img {
+          aspect-ratio: 3 / 4;   /* mas maiksi sa phone */
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      🎮 Game Picker
+      <div class="header-sub">
+        Preloaded Game Drive Selection Tool
+      </div>
+    </header>
+
+    <div style="margin-top:10px; text-align:center;">
+      <div style="color:red; font-weight:bold; font-size:20px;">
+        GAMES COMPATIBILITY IS BUYERS RESPONSIBILITY
+      </div>
+      <div style="font-size:14px; color:#ddd; margin-top:5px;">
+        GAMES COMPATIBILITY IS BUYERS RESPONSIBILITY
+      </div>
+    </div>
+
+    <div>
+      Drive Capacity:
+      <select id="capacitySelect" onchange="updateCounter()">
+        <option value="440">500GB (Max 440GB)</option>
+        <option value="280">320GB (Max 280GB)</option>
+        <option value="580">640GB (Max 580GB)</option>
+        <option value="680">750GB (Max 680GB)</option>
+        <option value="910">1TB (Max 910GB)</option>
+        <option value="1800">2TB (Max 1800GB)</option>
+        <option value="3700">4TB (Max 3700GB)</option>
+      </select>
+      <br/>
+
+      <div style="text-align:center; margin-top:10px;">
+        <!-- Filter Buttons -->
+        <div id="platformFilters" style="margin-bottom:10px;">
+          <button onclick="setPlatformFilter('all')">All Platforms</button>
+          <button onclick="setPlatformFilter('pc')">PC Games</button>
+          <button onclick="setPlatformFilter('ps3')">PS3 Games</button>
+          <button onclick="setPlatformFilter('ps2')">PS2 Games</button>
+          <button onclick="setPlatformFilter('switch')">Switch Games</button>
+          <button onclick="setPlatformFilter('basic')">Basic / Low-End </button>
+          <button onclick="setPlatformFilter('2player')">2 Player</button>
+        </div>
+        
+        <!-- Sort Dropdown -->
+        Sort by: 
+        <select id="sort" onchange="renderGames()">
+          <option value="name">Name (A-Z)</option>
+          <option value="new" selected>Newly Added</option>
+          <option value="sizeAsc">Size (Smallest First)</option>
+          <option value="sizeDesc">Size (Largest First)</option>
+          <option value="mostPicked">Most Picked (Top)</option>
+          <option value="leastPicked">Least Picked (Bottom)</option>
+        </select>
+      </div>
+
+      <input type="text" id="search" placeholder="Search Game..." oninput="renderGames()"/>
+      <button onclick="selectAll()">✅ Select All</button>
+      <button onclick="deselectAll()">❌ Deselect All</button>
+      <button id="saveButton" onclick="saveGameList()" style="display:none;">💾 Save to Google Sheet</button>
+    </div>
+
+    <div id="capacityDisplay">Total Size: <span id="totalSize">0.0</span> GB</div>
+    <div id="capacityWarning" class="warning"></div>
+    <div id="loading" style="text-align:center; display:none;">
+      <div class="neon-spinner"></div>
+      <div style="margin-top:10px; color:#7CFF00;">
+        Loading games...
+      </div>
+    </div>
+
+    <div id="gameCount" style="text-align:center; font-size:18px; margin-top:10px;">
+      Available games: <span id="gameCountNumber">0</span>
+    </div>
+
+    <div id="topPicks" style="margin: 20px 0; padding: 10px; background: #111; border: 1px solid #444; border-radius: 10px;">
+      <h3 style="color:orange;">🔥 Top 10 Most Picked Games 🔥</h3>
+      <ul id="topPicksList" style="list-style:none; padding-left:0; color:lime;"></ul>
+    </div>
+
+    <div id="games-container"></div>
+
+    <div id="floatingPanel">
+      <div><strong>Total Size:</strong> <span id="totalSizeFloating">0.0</span> GB</div>
+      <div><strong>Total Games:</strong> <span id="totalSelectedFloating">0</span></div>
+      <button onclick="viewList()">📋 View Selected Games</button>
+      <button onclick="downloadList()">💾 Save to Notepad</button>
+    </div>
+
+    <div class="admin-panel" id="admin-panel">
+      <h3>📋 Add / Edit Game</h3>
+      <input type="text" id="gameName" placeholder="Name"/>
+      <input type="number" id="gameSize" placeholder="Size in GB"/>
+      <select id="gamePlatform">
+        <option value="pc">PC</option>
+        <option value="ps3">PS3</option>
+        <option value="ps2">PS2</option>
+        <option value="switch">Nintendo Switch</option>
+        <option value="basic">Basic</option>
+      </select>
+      <input type="text" id="gameImage" placeholder="Image URL"/>
+      <input type="text" id="gameNote1" placeholder="Optional Note 1 (red)"/>
+      <input type="text" id="gameNote2" placeholder="Optional Note 2 (green)"/>
+      <label><input type="checkbox" id="game2Player"/> 2 Player</label>
+      <button onclick="addGame()">Save</button>
+    </div>
+
+    <div id="viewListModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; text-align:center; padding-top:50px;">
+      <div id="viewListContent" style="background:#f2f2f2; color:#111; display:inline-block; padding:20px; border-radius:10px; max-width:90%; max-height:80%; overflow:auto; text-align:left;"></div>
+
+      <!-- ✅ CLOSE BUTTON (LABAS NA SA CONTENT) -->
+      <div style="margin-top:15px;">
+        <button onclick="closeViewList()"
+          style="
+            padding:10px 16px;
+            background:#e53935;
+            color:white;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            font-weight:bold;
+          ">
+          ❌ Close
+        </button>
+      </div>
+    </div>
+
+    <div id="capacityPopup" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%); background:#220000; color:#fff; padding:20px; border:2px solid red; border-radius:10px; z-index:9999; font-size:16px; text-align:center;">
+      ⚠️ Capacity limit exceeded!
+      <br><span id="popupDetails"></span>
+      <br><button onclick="document.getElementById('capacityPopup').style.display='none'" style="margin-top:10px;">Close</button>
+    </div>
+
+
+    <script src="main.js"></script>
+
+    <script>
+      // Disable right-click
+      document.addEventListener("contextmenu", function(e) {
+        e.preventDefault();
+      });
+
+      // Disable common dev tools shortcuts
+      document.addEventListener("keydown", function(e) {
+        // F12
+        if (e.key === "F12") e.preventDefault();
+        // Ctrl+Shift+I / Ctrl+Shift+J / Ctrl+U
+        if (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J")) e.preventDefault();
+        if (e.ctrlKey && e.key === "U") e.preventDefault();
+        if (e.ctrlKey && e.shiftKey && e.key === "C") e.preventDefault();
+      });
+    </script>
+
+  </body>
+</html>
