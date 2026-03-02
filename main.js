@@ -1,6 +1,3 @@
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwgcZBFGBjNSFJGNbPQ0elLX6JoiL-FuexJxt1no5p6q7LI5r9rGaMqvO76EZbBbqVs/exec";
-const params = new URLSearchParams(window.location.search);
-const isAdmin = params.get("admin") === "gc2026";
 let games = [];
 let selected = [];
 let editIndex = null;
